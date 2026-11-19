@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#174ea6">
+<meta name="description" content="宿泊客の国籍と人数を登録・集計するアプリ">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<title>宿泊客集計</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#172033;background:#f3f6fb}
+*{box-sizing:border-box}body{margin:0}header{background:#174ea6;color:white;padding:18px 16px 16px;position:sticky;top:0;z-index:5;box-shadow:0 2px 8px #0002}
+header h1{font-size:20px;margin:0}header p{font-size:12px;margin:4px 0 0;opacity:.9}
+main{max-width:900px;margin:auto;padding:14px 12px 48px}
+.card{background:white;border-radius:14px;padding:16px;margin:0 0 14px;box-shadow:0 2px 10px #1720330b}
+h2{font-size:17px;margin:0 0 13px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:block;font-size:13px;font-weight:650;margin:0 0 5px}
+input,select,button{font:inherit}input,select{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:9px;background:white;font-size:16px;min-height:44px}
+button{border:0;border-radius:9px;padding:11px 14px;font-weight:700;cursor:pointer;min-height:42px}
+.primary{background:#174ea6;color:white}.secondary{background:#e8eef8;color:#174ea6}.danger{background:#fee2e2;color:#991b1b}.muted{color:#64748b;font-size:12px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.actions button{flex:1}
+table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}th,td{padding:9px 7px;border-bottom:1px solid #e5eaf1;text-align:right}th:first-child,td:first-child{text-align:left}th{background:#f7f9fc;font-weight:700}
+.table-wrap{overflow-x:auto}.total{font-weight:800;background:#f1f5fb}
+.record{border-bottom:1px solid #e8edf4;padding:10px 0;display:flex;justify-content:space-between;gap:8px;align-items:center}.record:last-child{border:0}.record small{display:block;color:#64748b}.record .actions{margin:0;min-width:130px}.record .actions button{padding:7px 9px;min-height:36px}
+.hidden{display:none!important}.confirm{background:#fff7ed;border:1px solid #fed7aa;padding:12px;border-radius:10px;margin-top:10px}
+.notice{background:#eff6ff;border-radius:9px;padding:10px;font-size:12px;color:#1e40af;margin-top:10px}
+@media(max-width:560px){.grid{grid-template-columns:1fr 1fr}.card{padding:14px}.record{align-items:flex-start}.record .actions{min-width:110px}.record .actions button{font-size:12px}}
+</style>
+</head>
+<body>
+<header><h1>宿泊客集計</h1><p>宿泊人数・国籍の登録と集計</p></header>
+<main>
+<section class="card">
+<h2>宿泊客を登録</h2>
+<div class="grid">
+<div><label for="date">宿泊日</label><input id="date" type="date"></div>
+<div><label for="count">人数</label><input id="count" type="number" min="1" step="1" value="1"></div>
+<div><label for="nationality">国籍区分</label><select id="nationality">
+<option value="内">日本（県内）・内</option><option value="外">日本（県外）・外</option>
+<option value="CHN">中国・CHN</option><option value="KOR">韓国・KOR</option><option value="USA">アメリカ・USA</option>
+<option value="other">その他（国名をカタカナ入力）</option>
+</select></div>
+<div id="country-wrap" class="hidden"><label for="country">国名（カタカナ）</label><input id="country" type="text" placeholder="例：タイ"></div>
+</div>
+<div class="actions"><button class="primary" id="save">登録する</button><button class="secondary" id="cancel-edit" hidden>編集をキャンセル</button></div>
+<div class="muted" style="margin-top:8px">日本は「内」「外」、中国・韓国・アメリカは3桁コードで登録します。</div>
+<div id="message" class="notice hidden" role="status"></div>
+</section>
+
+<section class="card">
+<h2>登録履歴</h2>
+<div id="history"></div>
+<div id="delete-confirm" class="confirm hidden">
+<div id="delete-text">この履歴を削除しますか？</div>
+<div class="actions"><button class="danger" id="delete-yes">削除する</button><button class="secondary" id="delete-no">キャンセル</button></div>
+</div>
+</section>
+
+<section class="card">
+<h2>日別集計</h2>
+<div style="max-width:240px;margin-bottom:12px"><label for="daily-month">集計する月</label><input type="month" id="daily-month"></div>
+<div class="table-wrap" id="daily-table"></div>
+</section>
+
+<section class="card">
+<h2>月別集計</h2>
+<div style="max-width:240px;margin-bottom:12px"><label for="monthly-month">集計する月</label><input type="month" id="monthly-month"></div>
+<div class="table-wrap" id="monthly-table"></div>
+</section>
+
+<section class="card">
+<h2>データの保存・バックアップ</h2>
+<div class="actions"><button class="secondary" id="csv">CSV出力</button><button class="secondary" id="backup">JSONバックアップ</button></div>
+<div style="margin-top:12px"><label for="restore-file">JSONから復元</label><input id="restore-file" type="file" accept=".json,application/json"></div>
+<div class="muted" style="margin-top:8px">データはこの端末・ブラウザ内に自動保存されます。定期的にバックアップしてください。</div>
+</section>
+</main>
+<script>
+const KEY='hotelNationalityRecordsV1';
+const countryCodes={
+'タイ':'THA','台湾':'TWN','ベトナム':'VNM','フィリピン':'PHL','ネパール':'NPL','インドネシア':'IDN','ミャンマー':'MMR','インド':'IND','シンガポール':'SGP','マレーシア':'MYS','スリランカ':'LKA','バングラデシュ':'BGD','オーストラリア':'AUS','カナダ':'CAN','イギリス':'GBR','英国':'GBR','フランス':'FRA','ドイツ':'DEU','イタリア':'ITA','スペイン':'ESP','ロシア':'RUS','モンゴル':'MNG','ブラジル':'BRA','メキシコ':'MEX','トルコ':'TUR','ニュージーランド':'NZL','パキスタン':'PAK','アメリカ':'USA','中国':'CHN','韓国':'KOR','香港':'HKG','マカオ':'MAC','カンボジア':'KHM','ラオス':'LAO','アメリカ合衆国':'USA','ウクライナ':'UKR','オランダ':'NLD','スイス':'CHE','スウェーデン':'SWE','ノルウェー':'NOR','デンマーク':'DNK','ポーランド':'POL','ポルトガル':'PRT','南アフリカ':'ZAF','サウジアラビア':'SAU','アラブ首長国連邦':'ARE','エジプト':'EGY'
+};
+let records=[], editingId=null, pendingDelete=null;
+const $=id=>document.getElementById(id);
+function load(){try{const x=JSON.parse(localStorage.getItem(KEY)||'[]');records=Array.isArray(x)?x:[]}catch(e){records=[]}}
+function saveData(){localStorage.setItem(KEY,JSON.stringify(records))}
+function today(){return new Date().toLocaleDateString('sv-SE')}
+function monthNow(){return today().slice(0,7)}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function showMessage(t){$('message').textContent=t;$('message').classList.remove('hidden');setTimeout(()=>$('message').classList.add('hidden'),3000)}
+function codeForInput(){let n=$('nationality').value;if(n!=='other')return n;let country=$('country').value.trim().replace(/\s/g,'');return countryCodes[country]||''}
+function resetForm(){editingId=null;$('date').value=today();$('count').value=1;$('nationality').value='内';$('country').value='';$('country-wrap').classList.add('hidden');$('save').textContent='登録する';$('cancel-edit').hidden=true}
+function render(){
+ const list=[...records].sort((a,b)=>b.date.localeCompare(a.date));
+ $('history').innerHTML=list.length?list.map(r=>`<div class="record"><div><strong>${esc(r.date)}</strong><div>${esc(r.code)}　${Number(r.count)}人</div></div><div class="actions"><button class="secondary" data-edit="${esc(r.id)}">修正</button><button class="danger" data-del="${esc(r.id)}">削除</button></div></div>`).join(''):'<div class="muted">登録履歴はありません。</div>';
+ $('history').querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>edit(b.dataset.edit)));
+ $('history').querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>askDelete(b.dataset.del)));
+ renderDaily();renderMonthly();
+}
+function edit(id){const r=records.find(x=>String(x.id)===String(id));if(!r)return;editingId=r.id;$('date').value=r.date;$('count').value=r.count;
+ if(['内','外','CHN','KOR','USA'].includes(r.code)){$('nationality').value=r.code;$('country-wrap').classList.add('hidden')}
+ else{$('nationality').value='other';$('country-wrap').classList.remove('hidden');$('country').value=Object.keys(countryCodes).find(k=>countryCodes[k]===r.code)||''}
+ $('save').textContent='修正を保存';$('cancel-edit').hidden=false;window.scrollTo({top:0,behavior:'smooth'});
+}
+function askDelete(id){pendingDelete=id;$('delete-text').textContent='この登録履歴を削除しますか？';$('delete-confirm').classList.remove('hidden')}
+function renderDaily(){
+ const m=$('daily-month').value||monthNow();const rows=records.filter(r=>r.date.startsWith(m));const codes=[...new Set(rows.map(r=>r.code))].sort();const days=[...new Set(rows.map(r=>r.date))].sort();
+ if(!days.length){$('daily-table').innerHTML='<div class="muted">この月の登録データはありません。</div>';return}
+ let html='<table><thead><tr><th>宿泊日</th>'+codes.map(c=>`<th>${esc(c)}</th>`).join('')+'<th>合計</th></tr></thead><tbody>';
+ for(const d of days){let total=0;html+=`<tr><td>${esc(d.slice(5))}</td>`;for(const c of codes){let n=rows.filter(r=>r.date===d&&r.code===c).reduce((s,r)=>s+Number(r.count),0);total+=n;html+=`<td>${n||'－'}</td>`}html+=`<td><b>${total}</b></td></tr>`}
+ html+='</tbody></table>';$('daily-table').innerHTML=html;
+}
+function renderMonthly(){
+ const m=$('monthly-month').value||monthNow();const rows=records.filter(r=>r.date.startsWith(m));const sums={};let total=0;
+ rows.forEach(r=>{sums[r.code]=(sums[r.code]||0)+Number(r.count);total+=Number(r.count)});
+ const codes=Object.keys(sums).sort();if(!codes.length){$('monthly-table').innerHTML='<div class="muted">この月の登録データはありません。</div>';return}
+ let html='<table><thead><tr><th>国籍コード</th><th>人数</th><th>構成比</th></tr></thead><tbody>';
+ codes.forEach(c=>html+=`<tr><td>${esc(c)}</td><td>${sums[c]}</td><td>${(sums[c]/total*100).toFixed(1)}%</td></tr>`);
+ html+=`<tr class="total"><td>合計</td><td>${total}</td><td>100.0%</td></tr></tbody></table>`;$('monthly-table').innerHTML=html;
+}
+$('nationality').addEventListener('change',()=>{$('country-wrap').classList.toggle('hidden',$('nationality').value!=='other')});
+$('save').addEventListener('click',()=>{
+ const date=$('date').value,count=Number($('count').value),code=codeForInput();
+ if(!date||!Number.isInteger(count)||count<1){showMessage('宿泊日と1人以上の人数を入力してください。');return}
+ if(!code){showMessage('国名を確認してください。対応していない国名は追加が必要です。');return}
+ if(editingId!==null){const i=records.findIndex(r=>String(r.id)===String(editingId));if(i>=0)records[i]={...records[i],date,count,code};showMessage('登録内容を修正しました。')}
+ else{records.push({id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random()),date,code,count});showMessage('登録しました。')}
+ saveData();resetForm();render();
+});
+$('cancel-edit').addEventListener('click',resetForm);
+$('delete-yes').addEventListener('click',()=>{if(pendingDelete!==null){records=records.filter(r=>String(r.id)!==String(pendingDelete));saveData();pendingDelete=null;$('delete-confirm').classList.add('hidden');render();showMessage('削除しました。')}});
+$('delete-no').addEventListener('click',()=>{pendingDelete=null;$('delete-confirm').classList.add('hidden')});
+$('daily-month').addEventListener('change',renderDaily);$('monthly-month').addEventListener('change',renderMonthly);
+function download(name,content,type){const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+$('csv').addEventListener('click',()=>{const lines=[['宿泊日','国籍コード','人数'],...records.map(r=>[r.date,r.code,r.count])];const csv='\ufeff'+lines.map(row=>row.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n');download('宿泊客集計.csv',csv,'text/csv;charset=utf-8')});
+$('backup').addEventListener('click',()=>download('宿泊客集計バックアップ.json',JSON.stringify(records,null,2),'application/json'));
+$('restore-file').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!Array.isArray(data)||!data.every(r=>r.date&&r.code&&Number(r.count)>0))throw Error();if(!confirm('現在のデータを、選択したバックアップの内容に置き換えますか？'))return;records=data;saveData();render();showMessage('バックアップを復元しました。')}catch(err){alert('JSONデータを読み込めませんでした。')}e.target.value=''});
+load();$('date').value=today();$('daily-month').value=monthNow();$('monthly-month').value=monthNow();render();
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
+</script>
+</body></html>
